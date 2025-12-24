@@ -1,4 +1,5 @@
-from datasets import load_dataset, Dataset
+from datasets import Dataset, load_dataset
+
 
 def load_ru_news_parquet(path: str) -> Dataset:
     ds = load_dataset("parquet", data_files=path, split="train")
@@ -13,6 +14,7 @@ def load_ru_news_parquet(path: str) -> Dataset:
             ds = ds.remove_columns(col)
     return ds
 
+
 def _preprocess_ru_stackoverflow_multiple(batch: dict) -> dict:
     """
     Processes a batch of examples to handle multiple accepted answers.
@@ -26,27 +28,20 @@ def _preprocess_ru_stackoverflow_multiple(batch: dict) -> dict:
     for i in range(len(batch["text_markdown"])):
         query = batch["text_markdown"][i]
         answers = batch["answers"][i]
-        
+
         for answer in answers:
             if answer.get("is_accepted"):
                 new_queries.append(query)
                 new_passages.append(answer["text_markdown"])
                 new_labels.append(1)
 
-    return {
-        "query": new_queries,
-        "passage": new_passages,
-        "label": new_labels
-    }
+    return {"query": new_queries, "passage": new_passages, "label": new_labels}
+
 
 def load_ru_stackoverflow_parquet(path: str, split: str = "train") -> Dataset:
     ds = load_dataset("parquet", data_files=path, split=split)
 
     # Process the dataset to handle multiple accepted answers
 
-    ds = ds.map(
-        _preprocess_ru_stackoverflow_multiple, 
-        batched=True, 
-        remove_columns=ds.column_names
-    )
+    ds = ds.map(_preprocess_ru_stackoverflow_multiple, batched=True, remove_columns=ds.column_names)
     return ds
